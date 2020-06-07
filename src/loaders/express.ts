@@ -2,6 +2,8 @@ import express, { Application } from "express";
 import cors from "cors";
 import routes from "../api";
 import config from "../config/config";
+import multer from "multer";
+import path from "path";
 
 export default ({ app }: { app: Application }) => {
   const {
@@ -16,20 +18,60 @@ export default ({ app }: { app: Application }) => {
     res.sendStatus(200);
   });
 
-  // Useful if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
-  // It shows the real origin IP in the heroku or Cloudwatch logs
-
   app.enable("trust proxy");
-
-  // The magic package that prevents frontend developers going nuts
-  // Alternate description:
-  // Enable Cross Origin Resource Sharing to all origins by default
 
   app.use(cors());
 
-  // Middleware that transforms the raw string of req.body into json
-
   app.use(express.json());
 
+  app.use(express.static("../../public"));
+
   app.use(prefix, routes());
+
+  console.log(__dirname);
+  const storage = multer.diskStorage({
+    destination: __dirname + "/public/uploads",
+    filename: (req, file, cb) => {
+      cb(
+        null,
+        file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+      );
+    },
+  });
+
+  const upload = multer({
+    storage,
+    limits: { fileSize: 1000000 },
+    fileFilter: (req, file, cb) => {
+      checkFileType(file, cb);
+    },
+  }).single("profile");
+
+  app.post("/upload", (req: any, res) => {
+    upload(req, res, (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log(req.file);
+        res.send("uploaded");
+      }
+    });
+  });
+
+  function checkFileType(file, cb) {
+    // Allowed ext
+    const filetypes = /jpeg|jpg|png|gif/;
+    // Check ext
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    // Check mime
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb("Error: Images Only!");
+    }
+  }
 };

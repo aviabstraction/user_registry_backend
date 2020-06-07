@@ -4,21 +4,15 @@ const User = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Please enter a full name"],
-      index: true,
     },
-
-    email: {
+    mobile_number: {
       type: String,
-      lowercase: true,
-      unique: true,
-      index: true,
     },
-    password: String,
-    salt: String,
-    role: {
-      type: String,
-      default: "user",
+    created_at: {
+      type: Date,
+    },
+    is_active: {
+      type: Boolean,
     },
   },
   { timestamps: true }
